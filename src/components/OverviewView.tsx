@@ -107,6 +107,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigateToMap }) =
                 <span>Launch Tactical Map</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
+
               <div className="flex items-center gap-2 text-xs font-mono text-slate-600">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span>Active geospatial canvas with NASA FIRMS WMS integration</span>
