@@ -1,0 +1,6 @@
+{
+  "name": "NTRO Thermal Intel",
+  "description": "Satellite Thermal Anomaly & Industrial Fire Classification System for automated spaceborne detection and multi-criteria disambiguation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
