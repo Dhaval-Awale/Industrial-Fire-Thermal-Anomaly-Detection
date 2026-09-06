@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
-    "dev:all": "concurrently \"npm run dev\" \"npm run start:backend\"",
+    "dev:frontend": "vite --port=5173 --host=0.0.0.0",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run start:backend\"",
     "start:backend": "tsx src/server/index.ts",
     "build": "vite build",
     "preview": "vite preview",
@@ -17,6 +17,7 @@
     "@tailwindcss/vite": "^4.1.14",
     "@types/leaflet": "^1.9.22",
     "@vitejs/plugin-react": "^5.0.4",
+    "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "leaflet": "^1.9.4",
@@ -24,6 +25,8 @@
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^6.0.1",
     "vite": "^6.2.3"
   },
   "devDependencies": {
