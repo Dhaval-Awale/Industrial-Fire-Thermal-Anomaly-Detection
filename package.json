@@ -7,6 +7,7 @@
     "dev:frontend": "vite --port=5173 --host=0.0.0.0",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run start:backend\"",
     "start:backend": "tsx src/server/index.ts",
+    "start": "tsx src/server/index.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
