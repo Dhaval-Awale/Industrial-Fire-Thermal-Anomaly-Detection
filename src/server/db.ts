@@ -1,107 +1,111 @@
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { VERIFIED_NTRO_EMPLOYEES } from '../data/mockEmployees.js';
 import { HOTSPOTS_DATA } from '../data/mockHotspots.js';
 
-let db: Database | null = null;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DB_FILE = path.resolve(__dirname, '../../data_store.json');
+
+export interface ActionLog {
+  id: number;
+  action_type: string;
+  hotspot_id: string;
+  employee_id: string;
+  timestamp: string;
+  details: string;
+}
+
+export interface DataStore {
+  profiles: typeof VERIFIED_NTRO_EMPLOYEES;
+  hotspots: typeof HOTSPOTS_DATA;
+  action_logs: ActionLog[];
+}
+
+let store: DataStore | null = null;
+
+function saveStore() {
+  if (!store) return;
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(store, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Failed to save data_store.json', err);
+  }
+}
 
 export async function initDb() {
-  if (db) return db;
-  
-  db = await open({
-    filename: './database.sqlite',
-    driver: sqlite3.Database
-  });
+  if (store) return createDbAdapter(store);
 
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS profiles (
-      id TEXT PRIMARY KEY,
-      name TEXT,
-      designation TEXT,
-      division TEXT,
-      serviceId TEXT,
-      uniqueCode TEXT,
-      passcode TEXT,
-      clearanceLevel TEXT,
-      badgeCode TEXT,
-      nicEmail TEXT,
-      avatarInitials TEXT,
-      station TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS hotspots (
-      id TEXT PRIMARY KEY,
-      name TEXT,
-      lat REAL,
-      lng REAL,
-      district TEXT,
-      state TEXT,
-      archetype TEXT,
-      confidenceScore INTEGER,
-      signatureId TEXT,
-      alertLevel TEXT,
-      frpMw REAL,
-      brightnessTempK REAL,
-      baselineFrpMw REAL,
-      spikeFactor REAL,
-      detectionTimeIst TEXT,
-      satellite TEXT,
-      osmPolygonId TEXT,
-      landCoverCadastre TEXT,
-      interAgencyDirectives TEXT,
-      persistenceProb REAL
-    );
-
-    CREATE TABLE IF NOT EXISTS hotspot_history (
-      hotspot_id TEXT,
-      date TEXT,
-      frp REAL,
-      FOREIGN KEY(hotspot_id) REFERENCES hotspots(id)
-    );
-
-    CREATE TABLE IF NOT EXISTS action_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      action_type TEXT,
-      hotspot_id TEXT,
-      employee_id TEXT,
-      timestamp TEXT,
-      details TEXT
-    );
-  `);
-
-  // Seed verified employee profiles if empty
-  const profileCount = await db.get('SELECT COUNT(*) as count FROM profiles');
-  if (profileCount.count === 0) {
-    const stmt = await db.prepare(`
-      INSERT INTO profiles (id, name, designation, division, serviceId, uniqueCode, passcode, clearanceLevel, badgeCode, nicEmail, avatarInitials, station)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    for (const emp of VERIFIED_NTRO_EMPLOYEES) {
-      await stmt.run(emp.id, emp.name, emp.designation, emp.division, emp.serviceId, emp.uniqueCode, emp.passcode, emp.clearanceLevel, emp.badgeCode, emp.nicEmail, emp.avatarInitials, emp.station);
+  if (fs.existsSync(DB_FILE)) {
+    try {
+      const data = fs.readFileSync(DB_FILE, 'utf-8');
+      store = JSON.parse(data);
+    } catch (err) {
+      console.warn('Failed to parse existing data_store.json, creating new store');
     }
-    await stmt.finalize();
   }
 
-  // Seed hotspots if empty
-  const hotspotCount = await db.get('SELECT COUNT(*) as count FROM hotspots');
-  if (hotspotCount.count === 0) {
-    const hsStmt = await db.prepare(`
-      INSERT INTO hotspots (id, name, lat, lng, district, state, archetype, confidenceScore, signatureId, alertLevel, frpMw, brightnessTempK, baselineFrpMw, spikeFactor, detectionTimeIst, satellite, osmPolygonId, landCoverCadastre, interAgencyDirectives, persistenceProb)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-    const historyStmt = await db.prepare(`
-      INSERT INTO hotspot_history (hotspot_id, date, frp) VALUES (?, ?, ?)
-    `);
+  if (!store) {
+    store = {
+      profiles: [...VERIFIED_NTRO_EMPLOYEES],
+      hotspots: [...HOTSPOTS_DATA],
+      action_logs: []
+    };
+    saveStore();
+  }
 
-    for (const hs of HOTSPOTS_DATA) {
-      await hsStmt.run(hs.id, hs.name, hs.lat, hs.lng, hs.district, hs.state, hs.archetype, hs.confidenceScore, hs.signatureId, hs.alertLevel, hs.frpMw, hs.brightnessTempK, hs.baselineFrpMw, hs.spikeFactor, hs.detectionTimeIst, hs.satellite, hs.osmPolygonId, hs.landCoverCadastre, hs.interAgencyDirectives, hs.persistenceProb);
-      for (const h of hs.historical30Day) {
-        await historyStmt.run(hs.id, h.date, h.frp);
+  return createDbAdapter(store);
+}
+
+function createDbAdapter(currentStore: DataStore) {
+  return {
+    async all(query: string, ...params: any[]): Promise<any[]> {
+      const q = query.trim().toUpperCase();
+      
+      if (q.includes('FROM PROFILES')) {
+        return currentStore.profiles;
       }
-    }
-    await hsStmt.finalize();
-    await historyStmt.finalize();
-  }
 
-  return db;
+      if (q.includes('FROM HOTSPOTS')) {
+        return currentStore.hotspots;
+      }
+
+      if (q.includes('FROM HOTSPOT_HISTORY')) {
+        const hotspotId = params[0];
+        const hs = currentStore.hotspots.find((h) => h.id === hotspotId);
+        return hs?.historical30Day || [];
+      }
+
+      if (q.includes('FROM ACTION_LOGS')) {
+        return currentStore.action_logs;
+      }
+
+      return [];
+    },
+
+    async run(query: string, params: any[] = []): Promise<{ lastID: number }> {
+      const q = query.trim().toUpperCase();
+
+      if (q.includes('INSERT INTO ACTION_LOGS')) {
+        const [action_type, hotspot_id, employee_id, timestamp, details] = params;
+        const newId = (currentStore.action_logs.length > 0 ? Math.max(...currentStore.action_logs.map(l => l.id)) : 0) + 1;
+        
+        const newLog: ActionLog = {
+          id: newId,
+          action_type,
+          hotspot_id,
+          employee_id,
+          timestamp,
+          details: typeof details === 'string' ? details : JSON.stringify(details || {})
+        };
+
+        currentStore.action_logs.push(newLog);
+        saveStore();
+        return { lastID: newId };
+      }
+
+      return { lastID: 0 };
+    }
+  };
 }
