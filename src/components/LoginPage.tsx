@@ -15,6 +15,7 @@ import {
   Binary,
 } from 'lucide-react';
 import { NTROEmployee } from '../types/auth';
+import { VERIFIED_NTRO_EMPLOYEES } from '../data/mockEmployees';
 
 interface LoginPageProps {
   onLoginSuccess: (employee: NTROEmployee) => void;
@@ -29,13 +30,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [handshakeStep, setHandshakeStep] = useState('');
   const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
-  const [profiles, setProfiles] = useState<NTROEmployee[]>([]);
+  const [profiles, setProfiles] = useState<NTROEmployee[]>(VERIFIED_NTRO_EMPLOYEES);
 
   React.useEffect(() => {
     fetch('/api/profiles')
-      .then((res) => res.json())
-      .then((data) => setProfiles(data))
-      .catch((err) => console.error('Failed to fetch profiles', err));
+      .then((res) => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setProfiles(data);
+        }
+      })
+      .catch((err) => console.warn('Using local verified profiles fallback:', err));
   }, []);
 
   const handleQuickSelect = (emp: NTROEmployee) => {

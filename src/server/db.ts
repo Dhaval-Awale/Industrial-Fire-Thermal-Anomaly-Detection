@@ -39,7 +39,7 @@ export async function initDb() {
       archetype TEXT,
       confidenceScore INTEGER,
       signatureId TEXT,
-      status TEXT,
+      alertLevel TEXT,
       frpMw REAL,
       brightnessTempK REAL,
       baselineFrpMw REAL,
@@ -69,9 +69,9 @@ export async function initDb() {
     );
   `);
 
-  // Seed employees if empty
-  const employeeCount = await db.get('SELECT COUNT(*) as count FROM profiles');
-  if (employeeCount.count === 0) {
+  // Seed verified employee profiles if empty
+  const profileCount = await db.get('SELECT COUNT(*) as count FROM profiles');
+  if (profileCount.count === 0) {
     const stmt = await db.prepare(`
       INSERT INTO profiles (id, name, designation, division, serviceId, uniqueCode, passcode, clearanceLevel, badgeCode, nicEmail, avatarInitials, station)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -86,7 +86,7 @@ export async function initDb() {
   const hotspotCount = await db.get('SELECT COUNT(*) as count FROM hotspots');
   if (hotspotCount.count === 0) {
     const hsStmt = await db.prepare(`
-      INSERT INTO hotspots (id, name, lat, lng, district, state, archetype, confidenceScore, signatureId, status, frpMw, brightnessTempK, baselineFrpMw, spikeFactor, detectionTimeIst, satellite, osmPolygonId, landCoverCadastre, interAgencyDirectives, persistenceProb)
+      INSERT INTO hotspots (id, name, lat, lng, district, state, archetype, confidenceScore, signatureId, alertLevel, frpMw, brightnessTempK, baselineFrpMw, spikeFactor, detectionTimeIst, satellite, osmPolygonId, landCoverCadastre, interAgencyDirectives, persistenceProb)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const historyStmt = await db.prepare(`
@@ -94,7 +94,7 @@ export async function initDb() {
     `);
 
     for (const hs of HOTSPOTS_DATA) {
-      await hsStmt.run(hs.id, hs.name, hs.lat, hs.lng, hs.district, hs.state, hs.archetype, hs.confidenceScore, hs.signatureId, hs.status, hs.frpMw, hs.brightnessTempK, hs.baselineFrpMw, hs.spikeFactor, hs.detectionTimeIst, hs.satellite, hs.osmPolygonId, hs.landCoverCadastre, hs.interAgencyDirectives, hs.persistenceProb);
+      await hsStmt.run(hs.id, hs.name, hs.lat, hs.lng, hs.district, hs.state, hs.archetype, hs.confidenceScore, hs.signatureId, hs.alertLevel, hs.frpMw, hs.brightnessTempK, hs.baselineFrpMw, hs.spikeFactor, hs.detectionTimeIst, hs.satellite, hs.osmPolygonId, hs.landCoverCadastre, hs.interAgencyDirectives, hs.persistenceProb);
       for (const h of hs.historical30Day) {
         await historyStmt.run(hs.id, h.date, h.frp);
       }

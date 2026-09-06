@@ -13,8 +13,6 @@ import { NdrfDispatchModal } from './components/NdrfDispatchModal';
 import { LoginPage } from './components/LoginPage';
 import { ThermalHotspot } from './types/thermal';
 import { NTROEmployee } from './types/auth';
-import { ThermalHotspot } from './types/thermal';
-import { NTROEmployee } from './types/auth';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<NTROEmployee | null>(() => {
