@@ -1,14 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { Radio, Clock, AlertTriangle, ShieldCheck, User, Satellite, Key } from 'lucide-react';
+import { Radio, Clock, AlertTriangle, ShieldCheck, User, Satellite, Key, LogOut, ChevronDown } from 'lucide-react';
+import { NTROEmployee } from '../types/auth';
 
 interface HeaderProps {
   currentTab: 'overview' | 'map' | 'analytics';
   onTabChange: (tab: 'overview' | 'map' | 'analytics') => void;
   onOpenSettings?: () => void;
+  currentUser?: NTROEmployee | null;
+  onLogout?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentTab, onTabChange }) => {
+export const Header: React.FC<HeaderProps> = ({
+  currentTab,
+  onTabChange,
+  currentUser,
+  onLogout,
+}) => {
   const [istTime, setIstTime] = useState<string>('');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   useEffect(() => {
     const updateTime = () => {
@@ -117,10 +126,104 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onTabChange }) => {
             <span>ALERT LEVEL 2</span>
           </div>
 
-          {/* User Profile */}
-          <div className="w-8 h-8 rounded-md border border-slate-700 bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700 hover:text-white cursor-pointer transition">
-            <User className="w-4 h-4" />
-          </div>
+          {/* User Profile & Session Controls */}
+          {currentUser ? (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-md border border-slate-700 bg-slate-800 hover:bg-slate-750 text-slate-200 text-xs font-mono transition group"
+                title="View Personnel Credentials"
+              >
+                <div className="w-6 h-6 rounded bg-sky-600 text-white font-bold flex items-center justify-center text-[10px]">
+                  {currentUser.avatarInitials}
+                </div>
+                <div className="text-left hidden sm:block">
+                  <div className="text-[11px] font-bold text-slate-200 leading-none group-hover:text-sky-300 transition">
+                    {currentUser.name.split(' ')[0]} {currentUser.name.split(' ')[1] || ''}
+                  </div>
+                  <div className="text-[9px] text-sky-400 font-mono leading-tight mt-0.5">
+                    {currentUser.serviceId}
+                  </div>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white transition-transform" />
+              </button>
+
+              {/* Profile Dropdown Popover */}
+              {showProfileMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowProfileMenu(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-80 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 z-50 text-xs space-y-3 font-sans">
+                    <div className="flex items-start justify-between border-b border-slate-800 pb-3">
+                      <div>
+                        <div className="font-bold text-white text-sm">
+                          {currentUser.name}
+                        </div>
+                        <div className="text-slate-400 text-xs">
+                          {currentUser.designation}
+                        </div>
+                        <div className="text-slate-500 text-[11px] font-mono mt-0.5">
+                          {currentUser.nicEmail}
+                        </div>
+                      </div>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950 text-sky-400 border border-sky-800 shrink-0">
+                        {currentUser.serviceId}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 text-[11px] font-mono text-slate-300">
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">EMPLOYEE CODE:</span>
+                        <span className="text-sky-300 font-bold tracking-wider">{currentUser.uniqueCode}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">CLEARANCE:</span>
+                        <span className="text-emerald-400 font-bold">{currentUser.clearanceLevel}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">DIVISION:</span>
+                        <span className="text-slate-300 truncate max-w-[180px] text-right" title={currentUser.division}>
+                          {currentUser.division}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500">STATION:</span>
+                        <span className="text-slate-300 truncate max-w-[180px] text-right" title={currentUser.station}>
+                          {currentUser.station}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-slate-500">
+                        SESSION ACTIVE // TLS 1.3
+                      </span>
+                      {onLogout && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            onLogout();
+                          }}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-950/80 hover:bg-red-900 border border-red-800/80 text-red-300 text-xs font-semibold transition"
+                        >
+                          <LogOut className="w-3 h-3" />
+                          <span>Sign Out</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="w-8 h-8 rounded-md border border-slate-700 bg-slate-800 text-slate-300 flex items-center justify-center hover:bg-slate-700 hover:text-white cursor-pointer transition">
+              <User className="w-4 h-4" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -131,11 +234,17 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onTabChange }) => {
           <span>GOVERNMENT OF INDIA</span>
           <span className="text-slate-600">/</span>
           <span>GEOSPATIAL THERMAL INTELLIGENCE DIRECTORATE</span>
+          {currentUser && (
+            <>
+              <span className="text-slate-600 hidden md:inline">/</span>
+              <span className="text-sky-400 font-semibold hidden md:inline">{currentUser.division}</span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5 text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>SECURITY TIER: AUTHORIZED LEVEL 1</span>
+            <span>SECURITY TIER: {currentUser ? currentUser.clearanceLevel : 'AUTHORIZED LEVEL 1'}</span>
           </span>
           <span className="text-slate-600">•</span>
           <span className="text-slate-300">SPACEBORNE SYNC: NOMINAL</span>

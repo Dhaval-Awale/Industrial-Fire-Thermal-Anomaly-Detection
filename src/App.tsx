@@ -3,20 +3,54 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { OverviewView } from './components/OverviewView';
 import { TacticalMapView } from './components/TacticalMapView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { IncidentDossierModal } from './components/IncidentDossierModal';
 import { NdrfDispatchModal } from './components/NdrfDispatchModal';
+import { LoginPage } from './components/LoginPage';
 import { ThermalHotspot } from './types/thermal';
+import { NTROEmployee } from './types/auth';
 import { HOTSPOTS_DATA } from './data/mockHotspots';
+import { VERIFIED_NTRO_EMPLOYEES } from './data/mockEmployees';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<NTROEmployee | null>(() => {
+    // Check if employee session is stored in localStorage
+    try {
+      const saved = localStorage.getItem('ntro_auth_session');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to parse saved NTRO session', e);
+    }
+    return null;
+  });
+
   const [currentTab, setCurrentTab] = useState<'overview' | 'map' | 'analytics'>('map');
   const [dossierHotspot, setDossierHotspot] = useState<ThermalHotspot | null>(null);
   const [dispatchHotspot, setDispatchHotspot] = useState<ThermalHotspot | null>(null);
+
+  const handleLoginSuccess = (employee: NTROEmployee) => {
+    setCurrentUser(employee);
+    try {
+      localStorage.setItem('ntro_auth_session', JSON.stringify(employee));
+    } catch (e) {
+      console.error('Failed to persist NTRO session', e);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    try {
+      localStorage.removeItem('ntro_auth_session');
+    } catch (e) {
+      console.error('Failed to clear NTRO session', e);
+    }
+  };
 
   const handleOpenDossier = (hotspot: ThermalHotspot) => {
     setDossierHotspot(hotspot);
@@ -26,12 +60,19 @@ export default function App() {
     setDispatchHotspot(hotspot);
   };
 
+  // If unauthenticated, show the classified NTRO Employee Login Portal
+  if (!currentUser) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col text-slate-900 font-sans selection:bg-red-600 selection:text-white">
       {/* Top Directorate Header & Sub-Bar */}
       <Header
         currentTab={currentTab}
         onTabChange={(tab) => setCurrentTab(tab)}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* Main Tab Screen Area */}
